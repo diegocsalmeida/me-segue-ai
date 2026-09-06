@@ -1,5 +1,116 @@
-    <script>
-      const urlParams = new URLSearchParams(window.location.search);
-      const id = urlParams.get('id');
-      window.location.href = "mesegueai://acompanhar?id=" + id;
-    </script>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Me Segue Aí - Acompanhamento em Tempo Real</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        #map { height: 100vh; width: 100vw; }
+        .banner {
+            position: absolute; top: 0; width: 100%; z-index: 1000;
+            background: #3F51B5; color: white; padding: 10px; text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .info-box {
+            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+            background: white; padding: 15px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .panic { background: #ff5252 !important; color: white !important; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="banner">
+    Acompanhando via Web. <b>Baixe o app Me Segue Aí</b> para alertas de pânico e chegada!
+</div>
+
+<div id="map"></div>
+
+<div class="info-box" id="info">
+    <b>Aguardando localização...</b>
+</div>
+
+<!-- Firebase App (the core Firebase SDK) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<!-- Firebase Realtime Database -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // 1. CONFIGURAÇÃO DO SEU FIREBASE (COPIE DO CONSOLE DO FIREBASE)
+    const firebaseConfig = {
+	  apiKey: "AIzaSyATG3nxeQV6G_wvNAUCjDtpr5w1LOIoV-c",
+	  authDomain: "mesegueai-998f1.firebaseapp.com",
+	  databaseURL: "https://mesegueai-998f1-default-rtdb.firebaseio.com",
+	  projectId: "mesegueai-998f1",
+	  storageBucket: "mesegueai-998f1.firebasestorage.app",
+	  messagingSenderId: "134737336446",
+	  appId: "1:134737336446:web:8b937fc9b3b404721da02f",
+	  measurementId: "G-88B2L81TNP"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // 2. PEGAR ID DA URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetUid = urlParams.get('id');
+
+    // 3. INICIALIZAR MAPA
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let marker = null;
+
+    if (targetUid) {
+        // 4. ESCUTAR MUDANÇAS NO FIREBASE
+        const locationRef = database.ref('locations/' + targetUid);
+        const userRef = database.ref('users/' + targetUid);
+
+        let userName = "Amigo";
+        userRef.once('value').then((snapshot) => {
+            if (snapshot.exists()) userName = snapshot.val().name;
+        });
+
+        locationRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const pos = [data.latitude, data.longitude];
+
+                if (!marker) {
+                    marker = L.marker(pos).addTo(map);
+                    map.setView(pos, 16);
+                } else {
+                    marker.setLatLng(pos);
+                }
+
+                // Atualizar Info Box
+                const infoDiv = document.getElementById('info');
+                const bat = data.batteryLevel >= 0 ? `🔋 ${data.batteryLevel}%` : "";
+                const panicClass = data.isPanic ? "panic" : "";
+
+                infoDiv.className = "info-box " + panicClass;
+                infoDiv.innerHTML = `
+                    <b>${userName}</b> ${bat}<br>
+                    ${data.isPanic ? "⚠️ EMERGÊNCIA ATIVADA!" : "Em movimento"}<br>
+                    <small>Atualizado em: ${new Date(data.timestamp).toLocaleTimeString()}</small>
+                `;
+            }
+        });
+    } else {
+        document.getElementById('info').innerHTML = "Link inválido. Peça para seu amigo compartilhar novamente.";
+    }
+</script>
+
+</body>
+</html>

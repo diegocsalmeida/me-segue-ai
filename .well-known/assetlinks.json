@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "br.com.mesegueai",
+    "sha256_cert_fingerprints": ["F3:24:C6:39:E4:69:E1:12:5C:D5:BB:28:3A:84:3F:1E:CA:31:0F:FF:75:1E:D1:D2:D7:BD:6C:EE:6F:F5:E0:74"]
+  }
+}]

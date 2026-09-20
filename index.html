@@ -97,26 +97,27 @@
     const urlParams = new URLSearchParams(window.location.search);
     const targetUid = urlParams.get('id');
 
-    // Tentar abrir o app automaticamente ao carregar
     function tryOpenApp() {
         if (targetUid) {
-            // Tenta abrir via esquema customizado que o app reconhece
             window.location.href = "mesegueai://acompanhar?id=" + targetUid;
-
-            // Fallback: se em 2 segundos nada acontecer, o usuário continua na web
             console.log("Tentando redirecionar para o aplicativo...");
         }
     }
 
-    // Executa a tentativa automática
     setTimeout(tryOpenApp, 500);
 
-    const map = L.map('map', { zoomControl: false }).setView([0, 0], 2);
-    L.tileLayer('https://{s}.tile.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    // Inicialização do mapa sem carregar tiles imediatamente no ponto [0,0]
+    const map = L.map('map', { zoomControl: false });
+
+    // Adiciona o tileLayer com subdomínios otimizados
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 20,
         attribution: '&copy; OpenStreetMap &copy; CARTO'
     }).addTo(map);
 
     let marker = null;
+    let initialFitDone = false; // Flag para controlar primeira centralização
 
     if (targetUid) {
         const locationRef = database.ref('locations/' + targetUid);
@@ -133,17 +134,23 @@
                 const pos = [data.latitude, data.longitude];
 
                 if (!marker) {
+                    // Primeira vez que o local chega
                     marker = L.marker(pos).addTo(map);
                     map.setView(pos, 16);
+                    initialFitDone = true;
                 } else {
+                    // Atualizações seguintes: move o marcador sem forçar setView agressivo
                     marker.setLatLng(pos);
-                    // Opcional: animar ou centralizar se estiver longe
+                    
+                    if (data.isPanic) {
+                        // Move a câmera suavemente apenas se estiver em pânico
+                        map.panTo(pos);
+                    }
                 }
 
                 const infoDiv = document.getElementById('info');
                 const bat = data.batteryLevel >= 0 ? `🔋 ${data.batteryLevel}%` : "";
                 const panicClass = data.isPanic ? "panic" : "";
-
                 const time = new Date(data.timestamp).toLocaleTimeString();
 
                 infoDiv.className = "info-box " + panicClass;
@@ -160,11 +167,6 @@
                     </div>
                     <a href="javascript:void(0)" onclick="tryOpenApp()" class="btn-open-app">ABRIR NO APLICATIVO</a>
                 `;
-
-                if (data.isPanic) {
-                   // Se estiver em pânico e na web, centralizar sempre
-                   map.setView(pos, 17);
-                }
             }
         });
     } else {

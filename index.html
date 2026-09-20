@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
     <title>Me Segue Aí - Acompanhamento em Tempo Real</title>
     <meta charset="utf-8" />
@@ -8,76 +8,121 @@
     <!-- Leaflet CSS for Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; }
-        #map { height: 100vh; width: 100vw; }
-        .banner {
-            position: absolute; top: 0; width: 100%; z-index: 1000;
-            background: #3F51B5; color: white; padding: 10px; text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f4f9; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+
+        .top-banner {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 500px; z-index: 1000;
+            background: rgba(63, 81, 181, 0.95); color: white; padding: 12px 20px;
+            border-radius: 50px; text-align: center; font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center; gap: 10px;
         }
+
+        .top-banner b { cursor: pointer; text-decoration: underline; }
+
         .info-box {
-            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
-            background: white; padding: 15px; border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 85%; max-width: 400px; z-index: 1000;
+            background: white; padding: 20px; border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
         }
-        .panic { background: #ff5252 !important; color: white !important; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .btn-open-app {
+            display: block; width: 100%; padding: 12px; margin-top: 15px;
+            background: #3F51B5; color: white; border: none; border-radius: 12px;
+            font-weight: bold; font-size: 16px; cursor: pointer; text-align: center;
+            text-decoration: none; box-shadow: 0 4px 10px rgba(63, 81, 181, 0.3);
+        }
+
+        .panic {
+            background: #ff5252 !important;
+            color: white !important;
+            animation: pulse 1.5s infinite;
+            border: 2px solid white;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.02); box-shadow: 0 0 20px rgba(255, 82, 82, 0.6); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+
+        .status-dot {
+            height: 10px; width: 10px; background-color: #4CAF50;
+            border-radius: 50%; display: inline-block; margin-right: 5px;
+        }
     </style>
 </head>
 <body>
 
-<div class="banner">
-    Acompanhando via Web. <b>Baixe o app Me Segue Aí</b> para alertas de pânico e chegada!
+<div class="top-banner" id="banner">
+    <span>Para uma experiência melhor, abra no App.</span>
+    <b onclick="tryOpenApp()">ABRIR APP</b>
 </div>
 
 <div id="map"></div>
 
 <div class="info-box" id="info">
-    <b>Aguardando localização...</b>
+    <div style="text-align: center;">
+        <b>Buscando conexão...</b><br>
+        <small>Certifique-se que o link está correto.</small>
+    </div>
 </div>
 
-<!-- Firebase App (the core Firebase SDK) -->
+<!-- Firebase App -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<!-- Firebase Realtime Database -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // 1. CONFIGURAÇÃO DO SEU FIREBASE (COPIE DO CONSOLE DO FIREBASE)
     const firebaseConfig = {
-	  apiKey: "AIzaSyATG3nxeQV6G_wvNAUCjDtpr5w1LOIoV-c",
-	  authDomain: "mesegueai-998f1.firebaseapp.com",
-	  databaseURL: "https://mesegueai-998f1-default-rtdb.firebaseio.com",
-	  projectId: "mesegueai-998f1",
-	  storageBucket: "mesegueai-998f1.firebasestorage.app",
-	  messagingSenderId: "134737336446",
-	  appId: "1:134737336446:web:8b937fc9b3b404721da02f",
-	  measurementId: "G-88B2L81TNP"
+        apiKey: "AIzaSyATG3nxeQV6G_wvNAUCjDtpr5w1LOIoV-c",
+        authDomain: "mesegueai-998f1.firebaseapp.com",
+        databaseURL: "https://mesegueai-998f1-default-rtdb.firebaseio.com",
+        projectId: "mesegueai-998f1",
+        storageBucket: "mesegueai-998f1.firebasestorage.app",
+        messagingSenderId: "134737336446",
+        appId: "1:134737336446:web:8b937fc9b3b404721da02f",
+        measurementId: "G-88B2L81TNP"
     };
 
-    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // 2. PEGAR ID DA URL
     const urlParams = new URLSearchParams(window.location.search);
     const targetUid = urlParams.get('id');
 
-    // 3. INICIALIZAR MAPA
-    const map = L.map('map').setView([0, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
+    // Tentar abrir o app automaticamente ao carregar
+    function tryOpenApp() {
+        if (targetUid) {
+            // Tenta abrir via esquema customizado que o app reconhece
+            window.location.href = "mesegueai://acompanhar?id=" + targetUid;
+
+            // Fallback: se em 2 segundos nada acontecer, o usuário continua na web
+            console.log("Tentando redirecionar para o aplicativo...");
+        }
+    }
+
+    // Executa a tentativa automática
+    setTimeout(tryOpenApp, 500);
+
+    const map = L.map('map', { zoomControl: false }).setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
     }).addTo(map);
 
     let marker = null;
 
     if (targetUid) {
-        // 4. ESCUTAR MUDANÇAS NO FIREBASE
         const locationRef = database.ref('locations/' + targetUid);
         const userRef = database.ref('users/' + targetUid);
 
-        let userName = "Amigo";
+        let userName = "Usuário";
         userRef.once('value').then((snapshot) => {
             if (snapshot.exists()) userName = snapshot.val().name;
         });
@@ -92,23 +137,38 @@
                     map.setView(pos, 16);
                 } else {
                     marker.setLatLng(pos);
+                    // Opcional: animar ou centralizar se estiver longe
                 }
 
-                // Atualizar Info Box
                 const infoDiv = document.getElementById('info');
                 const bat = data.batteryLevel >= 0 ? `🔋 ${data.batteryLevel}%` : "";
                 const panicClass = data.isPanic ? "panic" : "";
 
+                const time = new Date(data.timestamp).toLocaleTimeString();
+
                 infoDiv.className = "info-box " + panicClass;
                 infoDiv.innerHTML = `
-                    <b>${userName}</b> ${bat}<br>
-                    ${data.isPanic ? "⚠️ EMERGÊNCIA ATIVADA!" : "Em movimento"}<br>
-                    <small>Atualizado em: ${new Date(data.timestamp).toLocaleTimeString()}</small>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 18px; font-weight: bold;">${userName}</span>
+                        <span style="font-size: 14px;">${bat}</span>
+                    </div>
+                    <div style="margin-top: 5px; font-size: 14px; opacity: 0.9;">
+                        ${data.isPanic ? "<b>⚠️ ALERTA DE PÂNICO ATIVADO!</b>" : "<span class='status-dot'></span> Localização em tempo real"}
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; opacity: 0.7;">
+                        Última atualização: ${time}
+                    </div>
+                    <a href="javascript:void(0)" onclick="tryOpenApp()" class="btn-open-app">ABRIR NO APLICATIVO</a>
                 `;
+
+                if (data.isPanic) {
+                   // Se estiver em pânico e na web, centralizar sempre
+                   map.setView(pos, 17);
+                }
             }
         });
     } else {
-        document.getElementById('info').innerHTML = "Link inválido. Peça para seu amigo compartilhar novamente.";
+        document.getElementById('info').innerHTML = "<b>ID não encontrado.</b><br>Verifique o link enviado.";
     }
 </script>
 

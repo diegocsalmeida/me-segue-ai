@@ -11,9 +11,14 @@
         body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f4f9; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
 
-        /* BANNER SUPERIOR - Oculto em Desktop, exibido e centralizado apenas em telas menores */
+        /* Deixa os tiles do OpenStreetMap com visual vivo e limpo */
+        .leaflet-tile-pane {
+            filter: saturate(1.1) contrast(98%);
+        }
+
+        /* BANNER SUPERIOR - Oculto em Desktop, exibido e centralizado apenas em dispositivos móveis */
         .top-banner {
-            display: none; /* Por padrão oculto em telas grandes */
+            display: none;
             position: absolute; 
             top: 15px; 
             left: 50%; 
@@ -37,11 +42,8 @@
 
         .top-banner b { cursor: pointer; text-decoration: underline; white-space: nowrap; }
 
-        /* Exibe o banner apenas em telas móveis/tablets (largura máxima de 768px) */
         @media (max-width: 768px) {
-            .top-banner {
-                display: flex;
-            }
+            .top-banner { display: flex; }
         }
 
         .info-box {
@@ -148,18 +150,16 @@
         }
     }
 
-    // Tenta abrir no app apenas se for um dispositivo móvel
     if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         setTimeout(tryOpenApp, 500);
     }
 
     const map = L.map('map', { zoomControl: false });
 
-    // Camada CARTO Voyager / OSM vibrante (Gratuita, pública e colorida)
-    L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
+    // OpenStreetMap Oficial (Sem marca d'água, sem API key, 100% público)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
     let marker = null;

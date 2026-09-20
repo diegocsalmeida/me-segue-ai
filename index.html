@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Leaflet CSS for Maps -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f4f9; }
@@ -106,18 +106,15 @@
 
     setTimeout(tryOpenApp, 500);
 
-    // Inicialização do mapa sem carregar tiles imediatamente no ponto [0,0]
     const map = L.map('map', { zoomControl: false });
 
-    // Adiciona o tileLayer com subdomínios otimizados
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abcd',
-        maxZoom: 20,
-        attribution: '&copy; OpenStreetMap &copy; CARTO'
+    // ESRI World Gray Canvas - Gratuito, limpo e sem API Key
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+        maxZoom: 16
     }).addTo(map);
 
     let marker = null;
-    let initialFitDone = false; // Flag para controlar primeira centralização
 
     if (targetUid) {
         const locationRef = database.ref('locations/' + targetUid);
@@ -134,16 +131,11 @@
                 const pos = [data.latitude, data.longitude];
 
                 if (!marker) {
-                    // Primeira vez que o local chega
                     marker = L.marker(pos).addTo(map);
                     map.setView(pos, 16);
-                    initialFitDone = true;
                 } else {
-                    // Atualizações seguintes: move o marcador sem forçar setView agressivo
                     marker.setLatLng(pos);
-                    
                     if (data.isPanic) {
-                        // Move a câmera suavemente apenas se estiver em pânico
                         map.panTo(pos);
                     }
                 }

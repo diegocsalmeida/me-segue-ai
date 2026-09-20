@@ -11,12 +11,11 @@
         body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f4f9; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
 
-        /* Ajuste visual do OpenStreetMap */
         .leaflet-tile-pane {
             filter: saturate(1.1) contrast(98%);
         }
 
-        /* BANNER SUPERIOR - Oculto em Desktop, exibido e centralizado apenas em dispositivos móveis */
+        /* BANNER SUPERIOR - Apenas em celulares */
         .top-banner {
             display: none;
             position: absolute; 
@@ -94,6 +93,13 @@
             box-sizing: border-box;
         }
 
+        /* Oculta o botão do card em telas de Desktop */
+        @media (min-width: 769px) {
+            .btn-open-app {
+                display: none !important;
+            }
+        }
+
         .panic {
             background: #ff5252 !important;
             color: white !important;
@@ -167,20 +173,22 @@
     const urlParams = new URLSearchParams(window.location.search);
     const targetUid = urlParams.get('id');
 
+    // Identifica se o usuário está em um dispositivo móvel
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
     function tryOpenApp() {
-        if (targetUid) {
+        if (targetUid && isMobileDevice) {
             window.location.href = "mesegueai://acompanhar?id=" + targetUid;
             console.log("Tentando redirecionar para o aplicativo...");
         }
     }
 
-    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    if (isMobileDevice) {
         setTimeout(tryOpenApp, 500);
     }
 
     const map = L.map('map', { zoomControl: false });
 
-    // OpenStreetMap Oficial (Gratuito e sem exigência de API Key)
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -207,7 +215,7 @@
             const data = snapshot.val();
             if (data) {
                 const pos = [data.latitude, data.longitude];
-                const isPanic = data.panic === true; // Lendo o campo correto "panic"
+                const isPanic = data.panic === true;
 
                 if (!marker) {
                     marker = L.marker(pos).addTo(map);
@@ -228,6 +236,11 @@
                     ? `<img src="${userPhoto}" class="user-avatar" alt="${userName}" />`
                     : `<div class="user-avatar" style="background:#3F51B5; color:white; display:flex; align-items:center; justify-content:center; font-weight:bold;">${userName.charAt(0)}</div>`;
 
+                // Renderiza o botão apenas se for mobile
+                const btnAppHtml = isMobileDevice 
+                    ? `<a href="javascript:void(0)" onclick="tryOpenApp()" class="btn-open-app">ABRIR NO APLICATIVO</a>` 
+                    : '';
+
                 infoDiv.className = "info-box " + panicClass;
                 infoDiv.innerHTML = `
                     <div class="user-header">
@@ -245,7 +258,7 @@
                     <div style="margin-top: 10px; font-size: 11px; opacity: 0.7; text-align: right;">
                         Última atualização: ${time}
                     </div>
-                    <a href="javascript:void(0)" onclick="tryOpenApp()" class="btn-open-app">ABRIR NO APLICATIVO</a>
+                    ${btnAppHtml}
                 `;
             }
         });
